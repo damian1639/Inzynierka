@@ -1,0 +1,34 @@
+# === Unity ===
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+UserSettings/
+
+# IDE / system
+.vs/
+.idea/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.suo
+*.tmp
+.DS_Store
+
+# Android / Gradle
+.gradle/
+**/gradleOut/
+
+# iOS
+DerivedData/
+
+# Cache / build systems
+[Bb]ee/
+[Aa]rtifacts/
+
+# Crash/Profiling
+*.stackdump
