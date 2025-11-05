@@ -1,70 +1,78 @@
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
 using UnityEngine.UI;
+using TMPro;
 
 public class InventoryUI : MonoBehaviour
 {
     [System.Serializable]
     public class SlotRefs
     {
-        public Image background; // Image na obiekcie SlotX
-        public Image icon;       // dziecko "Icon"
-        public TextMeshProUGUI countText;   // dziecko "CountText"
+        public Image background;          // tło slota
+        public Image icon;                // ikonka surowca
+        public TextMeshProUGUI countText; // ilość (TMP)
     }
 
     [System.Serializable]
     public class ResourceIcon
     {
         public string resourceName = "Stone";
-        public Sprite sprite; // przypisz sprite w Inspectorze (opcjonalnie)
+        public Sprite sprite; // przypisz w Inspectorze
     }
 
-    [Header("Sloty (1-9 w kolejności)")]
+    [Header("Sloty (1–9)")]
     public SlotRefs[] slots = new SlotRefs[9];
 
-    [Header("Ikony surowców (opcjonalnie)")]
+    [Header("Ikony surowców")]
     public List<ResourceIcon> resourceIcons = new List<ResourceIcon>();
 
-    [Header("Wygląd")]
+    [Header("Kolory")]
     public Color emptyColor = new Color(1, 1, 1, 0.25f);
     public Color filledColor = Color.white;
+    public Color selectedColor = new Color(0.5f, 0.8f, 1f, 1f); // podświetlenie zaznaczenia
 
-    // zapamiętujemy który surowiec siedzi w którym slocie
-    private Dictionary<string, int> resourceToSlot = new Dictionary<string, int>();
+    // mapowanie surowców → sloty
+    [HideInInspector] public Dictionary<string, int> resourceToSlot = new Dictionary<string, int>();
     private Dictionary<string, Sprite> iconMap = new Dictionary<string, Sprite>();
+
+    // zaznaczenie slotu
+    [HideInInspector] public int selectedSlot = -1;
+    [HideInInspector] public string selectedResource = null;
+
+    private Inventory boundInventory;
 
     private void Awake()
     {
-        // mapa nazw surowców na sprite
+        // Zmapuj nazwy surowców na ich sprite'y
         iconMap.Clear();
         foreach (var ri in resourceIcons)
         {
             if (ri != null && !string.IsNullOrEmpty(ri.resourceName))
                 iconMap[ri.resourceName] = ri.sprite;
         }
+
+        EnsureClickableSlots();
     }
 
     public void Bind(Inventory inventory)
     {
-        // Podpinamy się pod zdarzenie (zrób to raz w Start PlayerInteractor albo tutaj z zewnątrz)
+        boundInventory = inventory;
         inventory.OnChanged -= () => Refresh(inventory);
         inventory.OnChanged += () => Refresh(inventory);
-
         Refresh(inventory);
     }
 
+    // Główne odświeżanie UI
     public void Refresh(Inventory inventory)
     {
+        if (inventory == null) return;
         var all = inventory.GetAll();
 
-        // 1) Wyczyść UI
+        // 1) wyczyść wszystkie sloty
         for (int i = 0; i < slots.Length; i++)
-        {
             SetSlotEmpty(i);
-        }
 
-        // 2) Odśwież mapę przydziałów (usuwamy nieużywane)
+        // 2) usuń nieużywane przydziały
         List<string> toRemove = new List<string>();
         foreach (var kv in resourceToSlot)
         {
@@ -73,23 +81,24 @@ public class InventoryUI : MonoBehaviour
         }
         foreach (var k in toRemove) resourceToSlot.Remove(k);
 
-        // 3) Wyświetl każdy surowiec w jego slocie (lub przydziel pierwszy wolny)
+        // 3) przypisz surowce do slotów
         foreach (var kv in all)
         {
             string resource = kv.Key;
             int count = kv.Value;
             if (count <= 0) continue;
 
-            int slotIndex;
-            if (!resourceToSlot.TryGetValue(resource, out slotIndex))
+            if (!resourceToSlot.TryGetValue(resource, out int slotIndex))
             {
                 slotIndex = FindFirstFreeSlot();
-                if (slotIndex == -1) { Debug.LogWarning("Brak wolnych slotów w UI."); continue; }
+                if (slotIndex == -1) continue;
                 resourceToSlot[resource] = slotIndex;
             }
 
             SetSlotFilled(slotIndex, resource, count);
         }
+
+        RefreshSelectedVisual();
     }
 
     private int FindFirstFreeSlot()
@@ -103,26 +112,95 @@ public class InventoryUI : MonoBehaviour
     private void SetSlotEmpty(int i)
     {
         if (i < 0 || i >= slots.Length || slots[i] == null) return;
-        if (slots[i].background) slots[i].background.color = emptyColor;
-        if (slots[i].icon) { slots[i].icon.enabled = false; slots[i].icon.sprite = null; }
-        if (slots[i].countText) slots[i].countText.text = "";
+        var s = slots[i];
+        if (s.background) s.background.color = emptyColor;
+        if (s.icon) { s.icon.enabled = false; s.icon.sprite = null; }
+        if (s.countText) s.countText.text = "";
     }
 
     private void SetSlotFilled(int i, string resourceName, int count)
     {
         if (i < 0 || i >= slots.Length || slots[i] == null) return;
+        var s = slots[i];
 
-        if (slots[i].background) slots[i].background.color = filledColor;
-
-        if (slots[i].icon)
+        if (s.background) s.background.color = filledColor;
+        if (s.icon)
         {
-            slots[i].icon.enabled = true;
-            slots[i].icon.sprite = iconMap.TryGetValue(resourceName, out var sp) ? sp : null;
+            s.icon.enabled = true;
+            s.icon.sprite = iconMap.TryGetValue(resourceName, out var sp) ? sp : null;
         }
 
-        if (slots[i].countText)
-           slots[i].countText.text = count > 1 ? $"{resourceName}\n×{count}" : resourceName;
-;
+        if (s.countText)
+            s.countText.text = count > 1 ? $"{resourceName}\n×{count}" : resourceName;
     }
-    
+
+    // ---------------- ZAZNACZANIE SLOTU ----------------
+    public void SelectSlot(int slotIndex)
+    {
+        selectedSlot = slotIndex;
+        selectedResource = null;
+
+        foreach (var kv in resourceToSlot)
+        {
+            if (kv.Value == slotIndex)
+            {
+                selectedResource = kv.Key;
+                break;
+            }
+        }
+        RefreshSelectedVisual();
+    }
+
+    private void RefreshSelectedVisual()
+    {
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i]?.background == null) continue;
+            var outline = slots[i].background.GetComponent<Outline>();
+            if (outline == null) outline = slots[i].background.gameObject.AddComponent<Outline>();
+            outline.effectColor = Color.cyan;
+            outline.effectDistance = new Vector2(2, -2);
+            outline.enabled = (i == selectedSlot);
+        }
+    }
+
+    private void EnsureClickableSlots()
+    {
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i]?.background == null) continue;
+            var go = slots[i].background.gameObject;
+            var click = go.GetComponent<InventorySlotClick>();
+            if (click == null) click = go.AddComponent<InventorySlotClick>();
+            click.slotIndex = i;
+            click.inventoryUI = this;
+        }
+    }
+
+    // ---------------- INTERAKCJA Z PIECU ----------------
+    public bool TryInsertSelected(InventoryUI invUI, string resourceName)
+    {
+        if (boundInventory == null) return false;
+
+        if (boundInventory.GetResourceCount(resourceName) <= 0)
+            return false;
+
+        var furnaceUI = FindObjectOfType<FurnaceUI>();
+        if (furnaceUI == null) return false;
+
+        bool ok = furnaceUI.furnace.InsertFromInventory(boundInventory, resourceName, 1);
+        if (ok)
+        {
+            furnaceUI.Refresh();
+            Refresh(boundInventory);
+
+            if (boundInventory.GetResourceCount(resourceName) <= 0)
+            {
+                invUI.selectedResource = null;
+                invUI.selectedSlot = -1;
+                invUI.Refresh(boundInventory);
+            }
+        }
+        return ok;
+    }
 }

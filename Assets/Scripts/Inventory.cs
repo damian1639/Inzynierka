@@ -25,4 +25,21 @@ public class Inventory : MonoBehaviour
     }
 
     public IReadOnlyDictionary<string, int> GetAll() => resources;
+
+    public bool RemoveResource(string resourceName, int amount)
+    {
+        if (amount <= 0) return true;
+
+        if (resources.TryGetValue(resourceName, out int current) && current >= amount)
+        {
+            resources[resourceName] = current - amount;
+            if (resources[resourceName] <= 0)
+                resources.Remove(resourceName);
+
+            OnChanged?.Invoke();
+            Debug.Log($"Zabrano {amount}x {resourceName}. Zostało {GetResourceCount(resourceName)}");
+            return true;
+        }
+        return false;
+    }
 }
