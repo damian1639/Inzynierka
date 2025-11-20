@@ -40,4 +40,12 @@ public class ResourceNode : MonoBehaviour
         // Na wszelki wypadek przywróć kolor
         if (_renderer != null) _renderer.material.color = _baseColor;
     }
+    public bool TryConsumeOne()
+    {
+    // Miner woła to, gdy chce "wydobyć" jednostkę surowca.
+    // U Ciebie ruda jest nieskończona, więc zawsze zwracamy true.
+    // W przyszłości możesz tu dodać limit (np. licznik pozostałych zasobów).
+        return true;
+    }
+
 }

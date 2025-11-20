@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 
 public class InventoryUI : MonoBehaviour
 {
@@ -135,6 +136,7 @@ public class InventoryUI : MonoBehaviour
     }
 
     // ---------------- ZAZNACZANIE SLOTU ----------------
+    public event Action<string> OnSlotSelected;
     public void SelectSlot(int slotIndex)
     {
         selectedSlot = slotIndex;
@@ -149,6 +151,7 @@ public class InventoryUI : MonoBehaviour
             }
         }
         RefreshSelectedVisual();
+        OnSlotSelected?.Invoke(selectedResource);
     }
 
     private void RefreshSelectedVisual()
@@ -203,4 +206,5 @@ public class InventoryUI : MonoBehaviour
         }
         return ok;
     }
+    
 }

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3fffe6d47c05f24db4ab573ea1eb3bb, type: 3}
+  m_Name: ChestBuildable
+  m_EditorClassIdentifier: Assembly-CSharp::BuildableDefinition
+  costItemId: Chest
+  costAmount: 1
+  prefab: {fileID: 3518685855273836229, guid: 430687b807c8f0349a85907d0982ccc7, type: 3}
+  gridSize: 1
+  yOffset: 0.8
+  ghostValidMat: {fileID: 2100000, guid: 282346782ffb71246b8f680f9d853c31, type: 2}
+  ghostInvalidMat: {fileID: 2100000, guid: e610a32d57327224f8787d725d1fd1b7, type: 2}
+  requireResourceNode: 0
